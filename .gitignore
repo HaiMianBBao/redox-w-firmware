@@ -3,6 +3,7 @@
 *.map
 *.bin
 *.out
+*.asm
 
 # Add precompiled .hex
 !precompiled/*.hex
@@ -14,3 +15,5 @@
 .settings/
 
 
+/redox-w-keyboard-basic/pmw3610/build
+/.vscode

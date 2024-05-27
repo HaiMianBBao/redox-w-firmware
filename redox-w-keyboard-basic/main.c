@@ -11,6 +11,8 @@
 #include "nrf_drv_rtc.h"
 #include "nrf51_bitfields.h"
 #include "nrf51.h"
+#include "port_config.h"
+#include "pixart.h"
 
 
 /*****************************************************************************/
@@ -166,6 +168,12 @@ static void handle_send(const uint8_t* keys_buffer)
     }
 }
 
+extern uint32_t current_count;
+extern uint32_t target_count;
+
+extern struct k_work_delayable *gwork;
+extern void (*work_handler)(struct k_work_delayable *work);
+
 // 1000Hz debounce sampling
 static void tick(nrf_drv_rtc_int_type_t int_type)
 {
@@ -175,6 +183,17 @@ static void tick(nrf_drv_rtc_int_type_t int_type)
     handle_inactivity(keys_buffer);
 
     handle_send(keys_buffer);
+
+    current_count++;
+
+    current_count++;
+    if (current_count == target_count) {
+        if (work_handler != NULL) {
+            work_handler(gwork);
+            work_handler = NULL;
+            gwork = NULL;
+        }
+    }
 }
 
 // Low frequency clock configuration
@@ -225,6 +244,10 @@ int main()
 
     // Configure all keys as inputs with pullups
     gpio_config();
+
+    // Configure pmw3610
+    extern void pmw3610_init_public(void);
+    pmw3610_init_public();
 
     // Main loop, constantly sleep, waiting for RTC and gpio IRQs
     while(1)

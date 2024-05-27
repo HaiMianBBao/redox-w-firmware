@@ -41,7 +41,15 @@ $(SDK_ROOT)/components/drivers_nrf/delay/nrf_delay.c \
 $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
 $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
 $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
-$(SDK_ROOT)/components/drivers_nrf/rtc/nrf_drv_rtc.c
+$(SDK_ROOT)/components/drivers_nrf/rtc/nrf_drv_rtc.c \
+$(SDK_ROOT)/external/segger_rtt/RTT_Syscalls_GCC.c \
+$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+$(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+$(abspath ../../pmw3610/pmw3610.c) \
+$(abspath ../../pmw3610/port_nrf.c) \
+$(abspath ../../spi/iopincfg_nrfx.c) \
+$(abspath ../../spi/spi_nrfx.c) 
 
 #assembly files common to all targets
 ASM_SOURCE_FILES  = $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf51.s
@@ -65,7 +73,10 @@ INC_PATHS += -I$(SDK_ROOT)/components/drivers_nrf/clock
 INC_PATHS += -I$(SDK_ROOT)/components/libraries/util
 INC_PATHS += -I$(SDK_ROOT)/components/drivers_nrf/config
 INC_PATHS += -I$(SDK_ROOT)/components/drivers_nrf/rtc
-
+INC_PATHS += -I$(SDK_ROOT)/external/segger_rtt
+INC_PATHS += -I$(abspath ../../pmw3610)
+INC_PATHS += -I$(SDK_ROOT)/components/drivers_nrf/gpiote
+INC_PATHS += -I$(abspath ../../spi)
 
 OBJECT_DIRECTORY = _build
 LISTING_DIRECTORY = $(OBJECT_DIRECTORY)
@@ -79,15 +90,18 @@ CFLAGS  = -DNRF51
 CFLAGS += -DGAZELL_PRESENT
 CFLAGS += -DBOARD_CUSTOM
 CFLAGS += -DBSP_DEFINES_ONLY
+CFLAGS += -DNRF_LOG_USES_RTT=1
+CFLAGS += -DGPIO_COUNT=0
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu99
-CFLAGS += -Wall -Werror -O3 -g3
+CFLAGS += -Wall -O3 -g3
 CFLAGS += -Wno-unused-function
 CFLAGS += -Wno-unused-variable
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
+CFLAGS += -Wno-format
 
 # keep every function in separate section. This will allow linker to dump unused functions
 LDFLAGS += -Xlinker -Map=$(LISTING_DIRECTORY)/$(OUTPUT_FILENAME).map
@@ -112,7 +126,9 @@ default: $(BUILD_DIRECTORIES) all
 
 #building all targets
 all: $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-keyboard-left.hex  \
-     $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-keyboard-right.hex
+     $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-keyboard-right.hex \
+	 $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-keyboard-left.asm \
+     $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-keyboard-right.asm
 
 C_SOURCE_FILE_NAMES = $(notdir $(C_SOURCE_FILES))
 C_PATHS = $(call remduplicates, $(dir $(C_SOURCE_FILES) ) )
@@ -145,6 +161,10 @@ $(OBJECT_DIRECTORY)/main-%.o: $(abspath ../../main.c)
 $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-%.out: $(OBJECTS) $(OBJECT_DIRECTORY)/main-%.o
 	@echo Linking target: $@
 	$(NO_ECHO)$(CC) $(LDFLAGS) $^ $(LIBS) -lm -o $@
+
+$(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-%.asm: $(OUTPUT_BINARY_DIRECTORY)/nrf51822_xxac-%.out
+	@echo Generating assembly file: $@
+	$(NO_ECHO)$(OBJDUMP) -S $< > $@
 
 # Create objects from C SRC files
 $(OBJECT_DIRECTORY)/%.o: %.c

@@ -80,6 +80,13 @@
 #define RNG_CONFIG_IRQ_PRIORITY     APP_IRQ_PRIORITY_LOW
 #endif
 
+#define GPIOTE_ENABLED 1
+
+#if (GPIOTE_ENABLED == 1)
+#define GPIOTE_CONFIG_USE_SWI_EGU false
+#define GPIOTE_CONFIG_IRQ_PRIORITY APP_IRQ_PRIORITY_LOW
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 4
+#endif
 
 #include "nrf_drv_config_validation.h"
 
